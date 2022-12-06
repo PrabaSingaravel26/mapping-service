@@ -9,9 +9,12 @@ import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -19,6 +22,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 
 public class ExcelHelper {
 
@@ -211,6 +216,41 @@ public class ExcelHelper {
             return targetDataList;
         } catch (IOException e) {
             throw new RuntimeException("fail to parse Excel file: " + e.getMessage());
+        }
+    }
+
+    public static String writeToExcelFile(TargetData targetData){
+        XSSFWorkbook workbook = new XSSFWorkbook();
+
+        XSSFSheet sheet = workbook.createSheet(SHEET);
+
+        Map<String,Object> data = targetData.getData();
+        Set<String> keyset = data.keySet();
+        int rownum = 0;
+        Row row = sheet.createRow(rownum++);
+        int cellnum = 0;
+        for (String key : keyset) {
+            Cell cell = row.createCell(cellnum++);
+            cell.setCellValue(key);
+        }
+        row = sheet.createRow(rownum++);
+        int cellnumber = 0;
+        for (String key : keyset) {
+            Object obj = data.get(key);
+            Cell cell = row.createCell(cellnumber++);
+            if(obj instanceof String)
+                cell.setCellValue((String)obj);
+            else if(obj instanceof Number)
+                cell.setCellValue((Double) obj);
+        }
+        try {
+            FileOutputStream out = new FileOutputStream(new File("patient.xlsx"));
+            workbook.write(out);
+            out.close();
+            return "patient.xlsx written successfully.";
+        }
+        catch (Exception e) {
+            throw new RuntimeException("fail to write Excel file: " + e.getMessage());
         }
     }
 }
