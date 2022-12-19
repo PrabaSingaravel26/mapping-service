@@ -1,7 +1,7 @@
 package com.census.migration.service;
 
 import com.census.migration.helper.ExcelHelper;
-import com.census.migration.model.MappingTable;
+import com.census.migration.model.MappingData;
 import com.census.migration.model.TargetData;
 import com.census.migration.repository.MappingDataRepository;
 import com.census.migration.repository.TargetDataRepository;
@@ -22,13 +22,21 @@ public class MappingServiceImpl implements MappingService {
     private TargetDataRepository targetDataRepository;
 
     @Override
-    public String saveMappingFields(MappingTable mappingTable) {
-        mappingDataRepository.save(mappingTable);
-        return "Saved Successfully";
+    public String saveMappingFields(String sourceEHR, String targetEHR, MultipartFile mappingFile) {
+        if(ExcelHelper.hasExcelFormat(mappingFile)){
+            try {
+                List<MappingData> mappingDataList = ExcelHelper.excelToMappingData(sourceEHR,targetEHR,mappingFile.getInputStream());
+                mappingDataRepository.saveAll(mappingDataList);
+                return "Saved Successfully";
+            } catch (IOException e) {
+                throw new RuntimeException("fail to store excel data: " + e.getMessage());
+            }
+        }
+        return null;
     }
 
     @Override
-    public MappingTable getMappingFields(String sourceEHRType) {
+    public MappingData getMappingFields(String sourceEHRType) {
         return mappingDataRepository.findBySourceEHR(sourceEHRType);
     }
 
@@ -36,7 +44,7 @@ public class MappingServiceImpl implements MappingService {
     public List<TargetData> saveTargetData(MultipartFile file) {
         if(ExcelHelper.hasExcelFormat(file)){
             try {
-                MappingTable mappingTable = mappingDataRepository.findBySourceEHR("Wellsky");
+                MappingData mappingTable = mappingDataRepository.findBySourceEHR("Wellsky");
                 List<TargetData> targetDataList = ExcelHelper.sourceToTargetData(file.getInputStream(), mappingTable);
                 return targetDataRepository.saveAll(targetDataList);
             } catch (IOException e) {

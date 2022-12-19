@@ -1,6 +1,6 @@
 package com.census.migration.service;
 
-import com.census.migration.model.MappingTable;
+import com.census.migration.model.MappingData;
 import com.census.migration.model.TargetData;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -8,9 +8,9 @@ import java.util.List;
 
 public interface MappingService {
 
-    String saveMappingFields(MappingTable mappingTable);
+    String saveMappingFields(String sourceEHR, String targetEHR, MultipartFile mappingFile);
 
-    MappingTable getMappingFields(String sourceEHRType);
+    MappingData getMappingFields(String sourceEHRType);
 
     List<TargetData> saveTargetData(MultipartFile file);
 }

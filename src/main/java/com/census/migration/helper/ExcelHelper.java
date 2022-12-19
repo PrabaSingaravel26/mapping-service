@@ -1,7 +1,7 @@
 package com.census.migration.helper;
 
 import com.census.migration.model.EHRData;
-import com.census.migration.model.MappingTable;
+import com.census.migration.model.MappingData;
 import com.census.migration.model.SourceData;
 import com.census.migration.model.TargetData;
 import org.apache.poi.ss.usermodel.Cell;
@@ -23,12 +23,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 
 public class ExcelHelper {
 
     public static String TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
     static String SHEET = "PatientDetails";
+    static String MAPPING_SHEET = "MappingSheet";
 
     public static boolean hasExcelFormat(MultipartFile file) {
         if (!TYPE.equals(file.getContentType())) {
@@ -173,7 +173,7 @@ public class ExcelHelper {
         }
     }
 
-    public static List<TargetData> sourceToTargetData(InputStream inputStream, MappingTable mappingTable) {
+    public static List<TargetData> sourceToTargetData(InputStream inputStream, MappingData mappingTable) {
         try {
             Workbook workbook = new XSSFWorkbook(inputStream);
             Sheet sheet = workbook.getSheet(SHEET);
@@ -200,7 +200,7 @@ public class ExcelHelper {
                     Cell currentCell = cellsInRow.next();
                     CellType cellType =currentCell.getCellType();
                     String headerName = headerNames.get(index);
-                    String targetColumnName = mappingTable.getSourceTargetColumnMap().get(headerName);
+                    String targetColumnName = mappingTable.getTargetColumnName();
                     if(CellType.STRING == cellType){
                         dataMap.put(targetColumnName, currentCell.getStringCellValue());
                     }else if(CellType.NUMERIC == cellType){
@@ -251,6 +251,65 @@ public class ExcelHelper {
         }
         catch (Exception e) {
             throw new RuntimeException("fail to write Excel file: " + e.getMessage());
+        }
+    }
+
+    public static List<MappingData> excelToMappingData(String sourceEHR, String targetEHR, InputStream inputStream) {
+        try {
+            Workbook workbook = new XSSFWorkbook(inputStream);
+            Sheet sheet = workbook.getSheet(MAPPING_SHEET);
+            Iterator<Row> rows = sheet.iterator();
+            List<MappingData> mappingDataList = new ArrayList<>();
+            List<String> headerNames = new ArrayList<>();
+            int rowNumber = 0;
+            while (rows.hasNext()) {
+                Row currentRow = rows.next();
+                Map<String, Object> dataMap = new HashMap<>();
+                MappingData mappingData = new MappingData();
+                mappingData.setSourceEHR(sourceEHR);
+                mappingData.setTargetEHR(targetEHR);
+                Iterator<Cell> cellsInRow = currentRow.iterator();
+                int cellIdx = 0;
+                if (rowNumber == 0) {
+                    while (cellsInRow.hasNext()) {
+                        Cell currentCell = cellsInRow.next();
+                        headerNames.add(currentCell.getStringCellValue());
+                        cellIdx++;
+                    }
+                    rowNumber++;
+                    continue;
+                }
+                for(int index = 0; index < headerNames.size(); index++){
+                    Cell currentCell = cellsInRow.next();
+                    CellType cellType =currentCell.getCellType();
+                    String headerName = headerNames.get(index);
+                    switch (headerName) {
+                        case "sourceSheetName":
+                            mappingData.setSourceSheetName(currentCell.getStringCellValue());
+                            break;
+                        case "sourceColumnName":
+                            mappingData.setSourceColumnName(currentCell.getStringCellValue());
+                            break;
+                        case "targetSheetName":
+                            mappingData.setTargetSheetName(currentCell.getStringCellValue());
+                            break;
+                        case "targetColumnName":
+                            mappingData.setTargetColumnName(currentCell.getStringCellValue());
+                            break;
+                        case "requiredField":
+                            mappingData.setRequiredField(currentCell.getStringCellValue());
+                            break;
+                        default:
+                            break;
+                    }
+                    cellIdx++;
+                }
+                mappingDataList.add(mappingData);
+            }
+            workbook.close();
+            return mappingDataList;
+        } catch (IOException e) {
+            throw new RuntimeException("fail to parse Excel file: " + e.getMessage());
         }
     }
 }

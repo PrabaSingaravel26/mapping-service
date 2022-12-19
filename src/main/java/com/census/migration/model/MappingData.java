@@ -10,6 +10,8 @@ import org.hibernate.annotations.TypeDefs;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Table;
 import java.util.Map;
@@ -18,21 +20,18 @@ import java.util.Map;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
-@Table(name = "mapping_table")
-@TypeDefs({@TypeDef(
-        name = "json",
-        typeClass = JsonBinaryType.class
-)})
-public class MappingTable {
+@Table(name = "mapping_data")
+public class MappingData {
     @Id
+    @GeneratedValue(
+            strategy = GenerationType.AUTO
+    )
+    private int id;
     private String sourceEHR;
-    private String destinationEHR;
-    @Type(
-            type = "json"
-    )
-    @Column(
-            name = "source_target_column_map",
-            columnDefinition = "json"
-    )
-    private Map<String, String> sourceTargetColumnMap;
+    private String targetEHR;
+    private String sourceSheetName;
+    private String sourceColumnName;
+    private String targetSheetName;
+    private String targetColumnName;
+    private String requiredField;
 }
