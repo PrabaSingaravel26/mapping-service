@@ -1,6 +1,6 @@
 package com.census.migration.controller;
 
-import com.census.migration.model.MappingTable;
+import com.census.migration.model.MappingData;
 import com.census.migration.model.TargetData;
 import com.census.migration.service.MappingService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,12 +16,12 @@ public class MappingController implements MappingApi {
     private MappingService mappingService;
 
     @Override
-    public String saveMappingFields(MappingTable mappingTable) {
-        return mappingService.saveMappingFields(mappingTable);
+    public String saveMappingFields(String sourceEHR, String targetEHR, MultipartFile mappingFile) {
+        return mappingService.saveMappingFields(sourceEHR,targetEHR,mappingFile);
     }
 
     @Override
-    public MappingTable getMappingFields(String sourceEHRType) {
+    public MappingData getMappingFields(String sourceEHRType) {
         return mappingService.getMappingFields(sourceEHRType);
     }
 
