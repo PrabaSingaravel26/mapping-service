@@ -1,5 +1,6 @@
 package com.census.migration.controller;
 
+import com.census.migration.dto.MappingResponseDto;
 import com.census.migration.model.MappingData;
 import com.census.migration.model.TargetData;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,4 +24,8 @@ public interface MappingApi {
 
     @PostMapping("/TransformData")
     List<TargetData> saveTargetData(@RequestParam("file") MultipartFile file);
+
+    @GetMapping("/mapping/sourceEHRType/{sourceEHRType}/targetEHRType/{targetEHRType}/details")
+    MappingResponseDto getMappingDetails(@PathVariable("sourceEHRType") String sourceEHRType, @PathVariable("targetEHRType") String targetEHRType);
+
 }

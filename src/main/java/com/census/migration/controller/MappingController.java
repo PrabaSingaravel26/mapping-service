@@ -1,5 +1,6 @@
 package com.census.migration.controller;
 
+import com.census.migration.dto.MappingResponseDto;
 import com.census.migration.model.MappingData;
 import com.census.migration.model.TargetData;
 import com.census.migration.service.MappingService;
@@ -28,5 +29,10 @@ public class MappingController implements MappingApi {
     @Override
     public List<TargetData> saveTargetData(MultipartFile file) {
         return mappingService.saveTargetData(file);
+    }
+
+    @Override
+    public MappingResponseDto getMappingDetails(String sourceEHRType, String targetEHRType) {
+        return mappingService.getMappingSourceToTargetMappingDetails(sourceEHRType, targetEHRType);
     }
 }
