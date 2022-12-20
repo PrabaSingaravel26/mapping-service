@@ -13,7 +13,7 @@ public class TransformationController implements TransformationApi{
     private TransformationService transformationService;
 
     @Override
-    public String transformSourceToTargetFile(UUID patient_id) {
+    public String transformSourceToTargetFile(int patient_id) {
         return transformationService.transformSourceToTargetFile(patient_id);
     }
 }

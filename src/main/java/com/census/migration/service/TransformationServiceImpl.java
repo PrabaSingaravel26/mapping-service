@@ -15,7 +15,7 @@ public class TransformationServiceImpl implements TransformationService {
     private TargetDataRepository targetDataRepository;
 
     @Override
-    public String transformSourceToTargetFile(UUID patient_id) {
+    public String transformSourceToTargetFile(int patient_id) {
         TargetData targetData = targetDataRepository.getById(patient_id);
         return ExcelHelper.writeToExcelFile(targetData);
     }

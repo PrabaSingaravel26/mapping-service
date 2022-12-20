@@ -23,11 +23,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class ExcelHelper {
 
     public static String TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-    static String SHEET = "PatientDetails";
+    static String SHEET = "Basic Info";
     static String MAPPING_SHEET = "MappingSheet";
 
     public static boolean hasExcelFormat(MultipartFile file) {
@@ -163,6 +164,7 @@ public class ExcelHelper {
                         dataMap.put(headerNames.get(index), currentCell.getBooleanCellValue());
                     }
                 }
+                ehrData.setSheetName(SHEET);
                 ehrData.setData(dataMap);
                 sourceDataList.add(ehrData);
             }
@@ -173,7 +175,7 @@ public class ExcelHelper {
         }
     }
 
-    public static List<TargetData> sourceToTargetData(InputStream inputStream, MappingData mappingTable) {
+    public static List<TargetData> sourceToTargetData(InputStream inputStream, List<MappingData> mappingTable) {
         try {
             Workbook workbook = new XSSFWorkbook(inputStream);
             Sheet sheet = workbook.getSheet(SHEET);
@@ -200,15 +202,18 @@ public class ExcelHelper {
                     Cell currentCell = cellsInRow.next();
                     CellType cellType =currentCell.getCellType();
                     String headerName = headerNames.get(index);
-                    String targetColumnName = mappingTable.getTargetColumnName();
+                    List<MappingData> targetColumnNames = mappingTable.stream()
+                                                     .filter(c -> c.getSourceColumnName().equals(headerName))
+                                                     .collect(Collectors.toList());
                     if(CellType.STRING == cellType){
-                        dataMap.put(targetColumnName, currentCell.getStringCellValue());
+                        dataMap.put(targetColumnNames.get(0).getTargetColumnName(), currentCell.getStringCellValue());
                     }else if(CellType.NUMERIC == cellType){
-                        dataMap.put(targetColumnName, currentCell.getNumericCellValue());
+                        dataMap.put(targetColumnNames.get(0).getTargetColumnName(), currentCell.getNumericCellValue());
                     }else if(CellType.BOOLEAN == cellType){
-                        dataMap.put(targetColumnName, currentCell.getBooleanCellValue());
+                        dataMap.put(targetColumnNames.get(0).getTargetColumnName(), currentCell.getBooleanCellValue());
                     }
                 }
+                targetData.setSheetName(mappingTable.get(0).getTargetSheetName());
                 targetData.setData(dataMap);
                 targetDataList.add(targetData);
             }
@@ -222,7 +227,7 @@ public class ExcelHelper {
     public static String writeToExcelFile(TargetData targetData){
         XSSFWorkbook workbook = new XSSFWorkbook();
 
-        XSSFSheet sheet = workbook.createSheet(SHEET);
+        XSSFSheet sheet = workbook.createSheet(targetData.getSheetName());
 
         Map<String,Object> data = targetData.getData();
         Set<String> keyset = data.keySet();

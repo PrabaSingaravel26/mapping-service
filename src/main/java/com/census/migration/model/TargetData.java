@@ -40,7 +40,10 @@ public class TargetData {
     @GeneratedValue(
             strategy = GenerationType.AUTO
     )
-    private UUID targetId;
+    private int targetId;
+
+    private String sheetName;
+
     @Type(
             type = "json"
     )

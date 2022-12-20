@@ -17,7 +17,6 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Table;
 import java.util.Map;
-import java.util.UUID;
 
 @Entity
 @Table(name = "ehr_data")
@@ -40,7 +39,10 @@ public class EHRData {
     @GeneratedValue(
             strategy = GenerationType.AUTO
     )
-    private UUID sourceId;
+    private int sourceId;
+
+    private String sheetName;
+
     @Type(
             type = "json"
     )

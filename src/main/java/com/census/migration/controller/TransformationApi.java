@@ -9,5 +9,5 @@ import java.util.UUID;
 @RequestMapping("/api/migration")
 public interface TransformationApi {
     @PostMapping("/Transformation")
-    String transformSourceToTargetFile(@RequestParam("patient_id") UUID patient_id);
+    String transformSourceToTargetFile(@RequestParam("patient_id") int patient_id);
 }

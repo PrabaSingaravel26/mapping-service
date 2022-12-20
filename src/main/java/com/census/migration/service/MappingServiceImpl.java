@@ -47,7 +47,7 @@ public class MappingServiceImpl implements MappingService {
     public List<TargetData> saveTargetData(MultipartFile file) {
         if(ExcelHelper.hasExcelFormat(file)){
             try {
-                MappingData mappingTable = mappingDataRepository.findBySourceEHR("Wellsky");
+                List<MappingData> mappingTable = mappingDataRepository.findBySourceEHRAndTargetEHR("Wellsky","HCHB");
                 List<TargetData> targetDataList = ExcelHelper.sourceToTargetData(file.getInputStream(), mappingTable);
                 return targetDataRepository.saveAll(targetDataList);
             } catch (IOException e) {
