@@ -95,18 +95,13 @@ public class ExcelHelper {
         }
     }
 
-    public static List<String> getSheetNames(InputStream inputStream){
-        try {
-            Workbook workbook = new XSSFWorkbook(inputStream);
-            int sheetCount = workbook.getNumberOfSheets();
-            List<String> sheetNames = new ArrayList<>();
-            for(int i=1; i<=sheetCount;i++){
-                sheetNames.add(workbook.getSheetName(i));
-            }
-            return sheetNames;
-        } catch (IOException e) {
-            throw new RuntimeException("fail to parse Excel file: " + e.getMessage());
+    public static List<String> getSheetNames(Workbook workbook){
+        int sheetCount = workbook.getNumberOfSheets();
+        List<String> sheetNames = new ArrayList<>();
+        for(int index = 0; index < sheetCount; index++){
+            sheetNames.add(workbook.getSheetName(index));
         }
+        return sheetNames;
     }
 
     public static List<String> getHeaderNames(InputStream inputStream){
@@ -133,40 +128,46 @@ public class ExcelHelper {
     public static List<EHRData> excelToEHRData(InputStream inputStream) {
         try {
             Workbook workbook = new XSSFWorkbook(inputStream);
-            Sheet sheet = workbook.getSheet(SHEET);
-            Iterator<Row> rows = sheet.iterator();
+            List<String> sheetNames = getSheetNames(workbook);
             List<EHRData> sourceDataList = new ArrayList<>();
-            List<String> headerNames = new ArrayList<>();
-            int rowNumber = 0;
-            while (rows.hasNext()) {
-                Row currentRow = rows.next();
-                Map<String, Object> dataMap = new HashMap<>();
-                EHRData ehrData = new EHRData();
-                Iterator<Cell> cellsInRow = currentRow.iterator();
-                int cellIdx = 0;
-                if (rowNumber == 0) {
-                    while (cellsInRow.hasNext()) {
-                        Cell currentCell = cellsInRow.next();
-                        headerNames.add(currentCell.getStringCellValue());
-                        cellIdx++;
+            for(int sheetIndex = 0; sheetIndex < sheetNames.size(); sheetIndex++){
+                Sheet sheet = workbook.getSheet(sheetNames.get(sheetIndex));
+                Iterator<Row> rows = sheet.iterator();
+                List<String> headerNames = new ArrayList<>();
+                int rowNumber = 0;
+                while (rows.hasNext()) {
+                    Row currentRow = rows.next();
+                    Map<String, Object> dataMap = new HashMap<>();
+                    EHRData ehrData = new EHRData();
+                    Iterator<Cell> cellsInRow = currentRow.iterator();
+                    int cellIdx = 0;
+                    if (rowNumber == 0) {
+                        while (cellsInRow.hasNext()) {
+                            Cell currentCell = cellsInRow.next();
+                            headerNames.add(currentCell.getStringCellValue());
+                            cellIdx++;
+                        }
+                        rowNumber++;
+                    }else{
+                        for(int index = 0; index < headerNames.size(); index++){
+                            Cell currentCell = cellsInRow.next();
+                            if(index == 0) {
+                                ehrData.setSourceId((int) currentCell.getNumericCellValue());
+                            }
+                            CellType cellType =currentCell.getCellType();
+                            if(CellType.STRING == cellType){
+                                dataMap.put(headerNames.get(index), currentCell.getStringCellValue());
+                            }else if(CellType.NUMERIC == cellType){
+                                dataMap.put(headerNames.get(index), currentCell.getNumericCellValue());
+                            }else if(CellType.BOOLEAN == cellType){
+                                dataMap.put(headerNames.get(index), currentCell.getBooleanCellValue());
+                            }
+                        }
+                        ehrData.setSheetName(sheetNames.get(sheetIndex));
+                        ehrData.setData(dataMap);
+                        sourceDataList.add(ehrData);
                     }
-                    rowNumber++;
-                    continue;
                 }
-                for(int index = 0; index < headerNames.size(); index++){
-                    Cell currentCell = cellsInRow.next();
-                    CellType cellType =currentCell.getCellType();
-                    if(CellType.STRING == cellType){
-                        dataMap.put(headerNames.get(index), currentCell.getStringCellValue());
-                    }else if(CellType.NUMERIC == cellType){
-                        dataMap.put(headerNames.get(index), currentCell.getNumericCellValue());
-                    }else if(CellType.BOOLEAN == cellType){
-                        dataMap.put(headerNames.get(index), currentCell.getBooleanCellValue());
-                    }
-                }
-                ehrData.setSheetName(SHEET);
-                ehrData.setData(dataMap);
-                sourceDataList.add(ehrData);
             }
             workbook.close();
             return sourceDataList;
@@ -178,44 +179,59 @@ public class ExcelHelper {
     public static List<TargetData> sourceToTargetData(InputStream inputStream, List<MappingData> mappingTable) {
         try {
             Workbook workbook = new XSSFWorkbook(inputStream);
-            Sheet sheet = workbook.getSheet(SHEET);
-            Iterator<Row> rows = sheet.iterator();
+            List<String> sheetNames = getSheetNames(workbook);
             List<TargetData> targetDataList = new ArrayList<>();
-            List<String> headerNames = new ArrayList<>();
-            int rowNumber = 0;
-            while (rows.hasNext()) {
-                Row currentRow = rows.next();
-                Map<String, Object> dataMap = new HashMap<>();
-                TargetData targetData = new TargetData();
-                Iterator<Cell> cellsInRow = currentRow.iterator();
-                int cellIdx = 0;
-                if (rowNumber == 0) {
-                    while (cellsInRow.hasNext()) {
-                        Cell currentCell = cellsInRow.next();
-                        headerNames.add(currentCell.getStringCellValue());
-                        cellIdx++;
+            for(int sheetIndex = 0; sheetIndex < sheetNames.size(); sheetIndex++) {
+                String sheetName = sheetNames.get(sheetIndex);
+                Sheet sheet = workbook.getSheet(sheetName);
+                Iterator<Row> rows = sheet.iterator();
+                List<String> headerNames = new ArrayList<>();
+                int rowNumber = 0;
+                while (rows.hasNext()) {
+                    Row currentRow = rows.next();
+                    Map<String, Object> dataMap = new HashMap<>();
+                    TargetData targetData = new TargetData();
+                    Iterator<Cell> cellsInRow = currentRow.iterator();
+                    int cellIdx = 0;
+                    if (rowNumber == 0) {
+                        while (cellsInRow.hasNext()) {
+                            Cell currentCell = cellsInRow.next();
+                            headerNames.add(currentCell.getStringCellValue());
+                            cellIdx++;
+                        }
+                        rowNumber++;
+                    }else {
+                        for (int index = 0; index < headerNames.size(); index++) {
+                            Cell currentCell = cellsInRow.next();
+                            CellType cellType = currentCell.getCellType();
+                            String headerName = headerNames.get(index);
+                            List<MappingData> targetColumnNames = mappingTable.stream()
+                                                                              .filter(c -> c.getSourceColumnName()
+                                                                                            .equals(headerName))
+                                                                              .collect(Collectors.toList());
+                            if (index == 0) {
+                                targetData.setTargetId((int) currentCell.getNumericCellValue());
+                            }
+                            if (CellType.STRING == cellType) {
+                                dataMap.put(targetColumnNames.get(0).getTargetColumnName(),
+                                            currentCell.getStringCellValue());
+                            } else if (CellType.NUMERIC == cellType) {
+                                dataMap.put(targetColumnNames.get(0).getTargetColumnName(),
+                                            currentCell.getNumericCellValue());
+                            } else if (CellType.BOOLEAN == cellType) {
+                                dataMap.put(targetColumnNames.get(0).getTargetColumnName(),
+                                            currentCell.getBooleanCellValue());
+                            }
+                        }
+                        List<MappingData> targetSheetNames = mappingTable.stream()
+                                                                         .filter(c -> c.getSourceSheetName()
+                                                                                       .equals(sheetName))
+                                                                         .collect(Collectors.toList());
+                        targetData.setSheetName(targetSheetNames.get(0).getTargetSheetName());
+                        targetData.setData(dataMap);
+                        targetDataList.add(targetData);
                     }
-                    rowNumber++;
-                    continue;
                 }
-                for(int index = 0; index < headerNames.size(); index++){
-                    Cell currentCell = cellsInRow.next();
-                    CellType cellType =currentCell.getCellType();
-                    String headerName = headerNames.get(index);
-                    List<MappingData> targetColumnNames = mappingTable.stream()
-                                                     .filter(c -> c.getSourceColumnName().equals(headerName))
-                                                     .collect(Collectors.toList());
-                    if(CellType.STRING == cellType){
-                        dataMap.put(targetColumnNames.get(0).getTargetColumnName(), currentCell.getStringCellValue());
-                    }else if(CellType.NUMERIC == cellType){
-                        dataMap.put(targetColumnNames.get(0).getTargetColumnName(), currentCell.getNumericCellValue());
-                    }else if(CellType.BOOLEAN == cellType){
-                        dataMap.put(targetColumnNames.get(0).getTargetColumnName(), currentCell.getBooleanCellValue());
-                    }
-                }
-                targetData.setSheetName(mappingTable.get(0).getTargetSheetName());
-                targetData.setData(dataMap);
-                targetDataList.add(targetData);
             }
             workbook.close();
             return targetDataList;
@@ -224,29 +240,34 @@ public class ExcelHelper {
         }
     }
 
-    public static String writeToExcelFile(TargetData targetData){
+    public static String writeToExcelFile(List<TargetData> targetData){
         XSSFWorkbook workbook = new XSSFWorkbook();
-
-        XSSFSheet sheet = workbook.createSheet(targetData.getSheetName());
-
-        Map<String,Object> data = targetData.getData();
-        Set<String> keyset = data.keySet();
-        int rownum = 0;
-        Row row = sheet.createRow(rownum++);
-        int cellnum = 0;
-        for (String key : keyset) {
-            Cell cell = row.createCell(cellnum++);
-            cell.setCellValue(key);
-        }
-        row = sheet.createRow(rownum++);
-        int cellnumber = 0;
-        for (String key : keyset) {
-            Object obj = data.get(key);
-            Cell cell = row.createCell(cellnumber++);
-            if(obj instanceof String)
-                cell.setCellValue((String)obj);
-            else if(obj instanceof Number)
-                cell.setCellValue((Double) obj);
+        XSSFSheet sheet;
+        for(int sheetIndex = 0; sheetIndex < targetData.size(); sheetIndex++){
+            String sheetName = targetData.get(sheetIndex).getSheetName();
+            Map<String,Object> data = targetData.get(sheetIndex).getData();
+            Set<String> keySet = data.keySet();
+            if(workbook.getSheet(sheetName) == null) {
+                sheet = workbook.createSheet(sheetName);
+                int rowNum = 0;
+                Row row = sheet.createRow(rowNum);
+                int cellNum = 0;
+                for (String key : keySet) {
+                    Cell cell = row.createCell(cellNum++);
+                    cell.setCellValue(key);
+                }
+            }
+            sheet = workbook.getSheet(sheetName);
+            Row row = sheet.createRow(sheet.getLastRowNum()+1);
+            int cellNumber = 0;
+            for (String key : keySet) {
+                Object obj = data.get(key);
+                Cell cell = row.createCell(cellNumber++);
+                if(obj instanceof String)
+                    cell.setCellValue((String)obj);
+                else if(obj instanceof Number)
+                    cell.setCellValue((Double) obj);
+            }
         }
         try {
             FileOutputStream out = new FileOutputStream(new File("patient.xlsx"));

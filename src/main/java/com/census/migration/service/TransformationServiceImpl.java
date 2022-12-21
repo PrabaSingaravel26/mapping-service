@@ -6,6 +6,7 @@ import com.census.migration.repository.TargetDataRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -15,8 +16,8 @@ public class TransformationServiceImpl implements TransformationService {
     private TargetDataRepository targetDataRepository;
 
     @Override
-    public String transformSourceToTargetFile(int patient_id) {
-        TargetData targetData = targetDataRepository.getById(patient_id);
+    public String transformSourceToTargetFile(List<Integer> patient_id) {
+        List<TargetData> targetData = targetDataRepository.findByTargetId(patient_id);
         return ExcelHelper.writeToExcelFile(targetData);
     }
 }

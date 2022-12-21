@@ -1,7 +1,7 @@
 package com.census.migration.service;
 
-import java.util.UUID;
+import java.util.List;
 
 public interface TransformationService {
-    String transformSourceToTargetFile(int patient_id);
+    String transformSourceToTargetFile(List<Integer> patient_id);
 }

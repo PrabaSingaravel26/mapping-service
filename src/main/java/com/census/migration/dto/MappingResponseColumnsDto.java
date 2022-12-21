@@ -9,7 +9,13 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class MappingResponseColumnsDto {
 
+    private String sourceSheetName;
+
     private String sourceEHRColumn;
 
+    private String destinationSheetName;
+
     private String destinationEHRColumn;
+
+    private String requiredField;
 }

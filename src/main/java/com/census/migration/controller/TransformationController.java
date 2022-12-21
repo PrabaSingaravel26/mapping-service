@@ -4,6 +4,7 @@ import com.census.migration.service.TransformationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -13,7 +14,7 @@ public class TransformationController implements TransformationApi{
     private TransformationService transformationService;
 
     @Override
-    public String transformSourceToTargetFile(int patient_id) {
+    public String transformSourceToTargetFile(List<Integer> patient_id) {
         return transformationService.transformSourceToTargetFile(patient_id);
     }
 }

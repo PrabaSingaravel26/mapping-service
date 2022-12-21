@@ -67,8 +67,11 @@ public class MappingServiceImpl implements MappingService {
         List<MappingResponseColumnsDto> columnsDtos = new ArrayList<>();
         mappingResponse.stream().forEach(s -> {
             MappingResponseColumnsDto responseColumnsDto = new MappingResponseColumnsDto();
+            responseColumnsDto.setSourceSheetName(s.getSourceSheetName());
             responseColumnsDto.setSourceEHRColumn(s.getSourceColumnName());
+            responseColumnsDto.setDestinationSheetName(s.getTargetSheetName());
             responseColumnsDto.setDestinationEHRColumn(s.getTargetColumnName());
+            responseColumnsDto.setRequiredField(s.getRequiredField());
             columnsDtos.add(responseColumnsDto);
         });
         response.setMapping(columnsDtos);

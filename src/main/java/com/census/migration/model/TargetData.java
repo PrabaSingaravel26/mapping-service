@@ -15,7 +15,9 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.IdClass;
 import javax.persistence.Table;
+import javax.persistence.criteria.CriteriaBuilder;
 import java.util.Map;
 import java.util.UUID;
 
@@ -24,24 +26,19 @@ import java.util.UUID;
 @NoArgsConstructor
 @Entity
 @Table(name = "target_data")
-@JsonIdentityInfo(
-        generator = ObjectIdGenerators.PropertyGenerator.class,
-        property = "targetId"
-)
 @TypeDefs({@TypeDef(
         name = "json",
         typeClass = JsonBinaryType.class
 )})
+@IdClass(TargetDataId.class)
 public class TargetData {
     @Id
     @Column(
             name = "target_id"
     )
-    @GeneratedValue(
-            strategy = GenerationType.AUTO
-    )
-    private int targetId;
+    private Integer targetId;
 
+    @Id
     private String sheetName;
 
     @Type(
