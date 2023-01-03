@@ -12,14 +12,11 @@ import java.util.List;
 @RequestMapping("/api/migration")
 public interface SourceDataApi {
 
-    @PostMapping("/upload")
-    String uploadSourceFile(@RequestParam("file") MultipartFile file);
-
     @GetMapping("/header")
     List<String> getHeaderNames(@RequestParam("file") MultipartFile file);
 
     @PostMapping("/uploadEHR")
-    String uploadEHRFile(@RequestParam("file") MultipartFile file);
+    String uploadEHRFile(@RequestParam("sourceEHR") String sourceEHR, @RequestParam("file") MultipartFile file);
 
     @GetMapping("/EHRData")
     List<EHRData> getEHRDate();

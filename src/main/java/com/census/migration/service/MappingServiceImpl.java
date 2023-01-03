@@ -1,18 +1,15 @@
 package com.census.migration.service;
 
-import com.census.migration.dto.MappingResponseColumnsDto;
-import com.census.migration.dto.MappingResponseDto;
 import com.census.migration.helper.ExcelHelper;
+import com.census.migration.model.EHRMapping;
 import com.census.migration.model.MappingData;
-import com.census.migration.model.TargetData;
+import com.census.migration.repository.EHRMappingRepository;
 import com.census.migration.repository.MappingDataRepository;
-import com.census.migration.repository.TargetDataRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -22,7 +19,7 @@ public class MappingServiceImpl implements MappingService {
     private MappingDataRepository mappingDataRepository;
 
     @Autowired
-    private TargetDataRepository targetDataRepository;
+    private EHRMappingRepository ehrMappingRepository;
 
     @Override
     public String saveMappingFields(String sourceEHR, String targetEHR, MultipartFile mappingFile) {
@@ -44,37 +41,16 @@ public class MappingServiceImpl implements MappingService {
     }
 
     @Override
-    public List<TargetData> saveTargetData(MultipartFile file) {
-        if(ExcelHelper.hasExcelFormat(file)){
+    public String saveEHRMapping(String sourceEHR, String targetEHR, MultipartFile mappingFile) {
+        if(ExcelHelper.hasExcelFormat(mappingFile)){
             try {
-                List<MappingData> mappingTable = mappingDataRepository.findBySourceEHRAndTargetEHR("Wellsky","HCHB");
-                List<TargetData> targetDataList = ExcelHelper.sourceToTargetData(file.getInputStream(), mappingTable);
-                return targetDataRepository.saveAll(targetDataList);
+                List<EHRMapping> mappingDataList = ExcelHelper.excelToEHRMapping(sourceEHR, targetEHR, mappingFile.getInputStream());
+                ehrMappingRepository.saveAll(mappingDataList);
+                return "Saved Successfully";
             } catch (IOException e) {
                 throw new RuntimeException("fail to store excel data: " + e.getMessage());
             }
         }
         return null;
-    }
-
-    @Override
-    public MappingResponseDto getMappingSourceToTargetMappingDetails(String sourceEHRType, String targetEHRType) {
-        List<MappingData> mappingResponse = mappingDataRepository.findBySourceEHRAndTargetEHR(sourceEHRType, targetEHRType);
-        mappingResponse.forEach(System.out::println);
-        MappingResponseDto response = new MappingResponseDto();
-        response.setSourceEHRType(sourceEHRType);
-        response.setDestinationEHRType(targetEHRType);
-        List<MappingResponseColumnsDto> columnsDtos = new ArrayList<>();
-        mappingResponse.stream().forEach(s -> {
-            MappingResponseColumnsDto responseColumnsDto = new MappingResponseColumnsDto();
-            responseColumnsDto.setSourceSheetName(s.getSourceSheetName());
-            responseColumnsDto.setSourceEHRColumn(s.getSourceColumnName());
-            responseColumnsDto.setDestinationSheetName(s.getTargetSheetName());
-            responseColumnsDto.setDestinationEHRColumn(s.getTargetColumnName());
-            responseColumnsDto.setRequiredField(s.getRequiredField());
-            columnsDtos.add(responseColumnsDto);
-        });
-        response.setMapping(columnsDtos);
-        return response;
     }
 }

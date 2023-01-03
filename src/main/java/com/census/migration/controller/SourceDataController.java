@@ -14,18 +14,14 @@ public class SourceDataController implements SourceDataApi {
     @Autowired
     private SourceDataService sourceDataService;
 
-    public String uploadSourceFile(MultipartFile file) {
-        return sourceDataService.saveSourceData(file);
-    }
-
     @Override
     public List<String> getHeaderNames(MultipartFile file) {
         return sourceDataService.getHeaderNames(file);
     }
 
     @Override
-    public String uploadEHRFile(MultipartFile file) {
-        return sourceDataService.saveEHRData(file);
+    public String uploadEHRFile(String sourceEHR, MultipartFile file) {
+        return sourceDataService.saveEHRData(sourceEHR, file);
     }
 
     @Override

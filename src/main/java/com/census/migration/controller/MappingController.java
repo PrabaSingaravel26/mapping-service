@@ -1,14 +1,10 @@
 package com.census.migration.controller;
 
-import com.census.migration.dto.MappingResponseDto;
 import com.census.migration.model.MappingData;
-import com.census.migration.model.TargetData;
 import com.census.migration.service.MappingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.util.List;
 
 @RestController
 public class MappingController implements MappingApi {
@@ -27,12 +23,8 @@ public class MappingController implements MappingApi {
     }
 
     @Override
-    public List<TargetData> saveTargetData(MultipartFile file) {
-        return mappingService.saveTargetData(file);
+    public String saveEHRMapping(String sourceEHRType, String targetEHRType, MultipartFile mappingFile) {
+        return mappingService.saveEHRMapping(sourceEHRType,targetEHRType,mappingFile);
     }
 
-    @Override
-    public MappingResponseDto getMappingDetails(String sourceEHRType, String targetEHRType) {
-        return mappingService.getMappingSourceToTargetMappingDetails(sourceEHRType, targetEHRType);
-    }
 }

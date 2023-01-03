@@ -1,11 +1,9 @@
 package com.census.migration.service;
 
-import com.census.migration.dto.MappingResponseDto;
 import com.census.migration.model.MappingData;
-import com.census.migration.model.TargetData;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.util.List;
 
 public interface MappingService {
 
@@ -13,7 +11,6 @@ public interface MappingService {
 
     MappingData getMappingFields(String sourceEHRType);
 
-    List<TargetData> saveTargetData(MultipartFile file);
+    String saveEHRMapping(String sourceEHR, String targetEHR, MultipartFile mappingFile);
 
-    MappingResponseDto getMappingSourceToTargetMappingDetails(String sourceEHRType, String targetEHRType);
 }

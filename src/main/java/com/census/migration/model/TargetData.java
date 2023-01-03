@@ -1,7 +1,5 @@
 package com.census.migration.model;
 
-import com.fasterxml.jackson.annotation.JsonIdentityInfo;
-import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import com.vladmihalcea.hibernate.type.json.JsonBinaryType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -12,14 +10,13 @@ import org.hibernate.annotations.TypeDefs;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
+import javax.persistence.FetchType;
 import javax.persistence.Id;
 import javax.persistence.IdClass;
+import javax.persistence.MapsId;
+import javax.persistence.OneToOne;
 import javax.persistence.Table;
-import javax.persistence.criteria.CriteriaBuilder;
 import java.util.Map;
-import java.util.UUID;
 
 @Data
 @AllArgsConstructor
@@ -34,12 +31,14 @@ import java.util.UUID;
 public class TargetData {
     @Id
     @Column(
-            name = "target_id"
+            name = "patient_id"
     )
-    private Integer targetId;
+    private Integer patientId;
 
     @Id
-    private String sheetName;
+    private String targetSheetName;
+
+    private String targetFileName;
 
     @Type(
             type = "json"
@@ -48,5 +47,5 @@ public class TargetData {
             name = "target_data",
             columnDefinition = "json"
     )
-    private Map<String,Object> data;
+    private Map<String,Object> targetData;
 }

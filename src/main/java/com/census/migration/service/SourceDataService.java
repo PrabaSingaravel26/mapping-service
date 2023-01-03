@@ -6,11 +6,9 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 public interface SourceDataService {
-    String saveSourceData(MultipartFile file);
-
     List<String> getHeaderNames(MultipartFile file);
 
-    String saveEHRData(MultipartFile file);
+    String saveEHRData(String sourceEHR, MultipartFile file);
 
     List<EHRData> getEHRDate();
 }

@@ -1,8 +1,9 @@
 package com.census.migration.helper;
 
 import com.census.migration.model.EHRData;
+import com.census.migration.model.EHRMapping;
 import com.census.migration.model.MappingData;
-import com.census.migration.model.SourceData;
+import com.census.migration.model.SourceEHRFormat;
 import com.census.migration.model.TargetData;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
@@ -17,7 +18,9 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -26,6 +29,12 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class ExcelHelper {
+
+    static Map<String,String> branchMap = Map.of(
+            "Queen City Hospice", "451 - BRANCH 451",
+            "Day City Hospice", "452 - BRANCH 452",
+            "Capital City Hospice", "453 - BRANCH 453"
+    );
 
     public static String TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
     static String SHEET = "Basic Info";
@@ -36,63 +45,6 @@ public class ExcelHelper {
             return false;
         }
         return true;
-    }
-
-    public static List<SourceData> excelToSourceData(InputStream inputStream) {
-        try {
-            Workbook workbook = new XSSFWorkbook(inputStream);
-            Sheet sheet = workbook.getSheet(SHEET);
-            Iterator<Row> rows = sheet.iterator();
-            List<SourceData> sourceDataList = new ArrayList<>();
-            int rowNumber = 0;
-            while (rows.hasNext()) {
-                Row currentRow = rows.next();
-                if (rowNumber == 0) {
-                    rowNumber++;
-                    continue;
-                }
-                Iterator<Cell> cellsInRow = currentRow.iterator();
-                SourceData sourceData = new SourceData();
-                int cellIdx = 0;
-                while (cellsInRow.hasNext()) {
-                    Cell currentCell = cellsInRow.next();
-                    switch (cellIdx) {
-                        case 0:
-                            sourceData.setPatientId((int) currentCell.getNumericCellValue());
-                            break;
-                        case 1:
-                            sourceData.setName(currentCell.getStringCellValue());
-                            break;
-                        case 2:
-                            sourceData.setAddress(currentCell.getStringCellValue());
-                            break;
-                        case 3:
-                            sourceData.setState(currentCell.getStringCellValue());
-                            break;
-                        case 4:
-                            sourceData.setZipCode((int) currentCell.getNumericCellValue());
-                            break;
-                        case 5:
-                            sourceData.setCounty(currentCell.getStringCellValue());
-                            break;
-                        case 6:
-                            sourceData.setMobileNumber((long) currentCell.getNumericCellValue());
-                            break;
-                        case 7:
-                            sourceData.setGender(currentCell.getStringCellValue());
-                            break;
-                        default:
-                            break;
-                    }
-                    cellIdx++;
-                }
-                sourceDataList.add(sourceData);
-            }
-            workbook.close();
-            return sourceDataList;
-        } catch (IOException e) {
-            throw new RuntimeException("fail to parse Excel file: " + e.getMessage());
-        }
     }
 
     public static List<String> getSheetNames(Workbook workbook){
@@ -125,13 +77,18 @@ public class ExcelHelper {
         }
     }
 
-    public static List<EHRData> excelToEHRData(InputStream inputStream) {
+    public static List<EHRData> excelToEHRData(List<SourceEHRFormat> sourceEHRFormatList, InputStream inputStream) {
         try {
             Workbook workbook = new XSSFWorkbook(inputStream);
             List<String> sheetNames = getSheetNames(workbook);
             List<EHRData> sourceDataList = new ArrayList<>();
             for(int sheetIndex = 0; sheetIndex < sheetNames.size(); sheetIndex++){
-                Sheet sheet = workbook.getSheet(sheetNames.get(sheetIndex));
+                String sheetName = sheetNames.get(sheetIndex);
+                Sheet sheet = workbook.getSheet(sheetName);
+                List<SourceEHRFormat> sourceEHRFormats = sourceEHRFormatList.stream()
+                                                                  .filter(c -> c.getSourceSheetName()
+                                                                                .equals(sheetName))
+                                                                  .collect(Collectors.toList());
                 Iterator<Row> rows = sheet.iterator();
                 List<String> headerNames = new ArrayList<>();
                 int rowNumber = 0;
@@ -149,21 +106,26 @@ public class ExcelHelper {
                         }
                         rowNumber++;
                     }else{
-                        for(int index = 0; index < headerNames.size(); index++){
+                        for(SourceEHRFormat fieldFormat : sourceEHRFormats){
                             Cell currentCell = cellsInRow.next();
-                            if(index == 0) {
+                            if(fieldFormat.getSourceFieldName().equals("Consolo Unique Patient ID")) {
                                 ehrData.setSourceId((int) currentCell.getNumericCellValue());
                             }
-                            CellType cellType =currentCell.getCellType();
-                            if(CellType.STRING == cellType){
-                                dataMap.put(headerNames.get(index), currentCell.getStringCellValue());
-                            }else if(CellType.NUMERIC == cellType){
-                                dataMap.put(headerNames.get(index), currentCell.getNumericCellValue());
-                            }else if(CellType.BOOLEAN == cellType){
-                                dataMap.put(headerNames.get(index), currentCell.getBooleanCellValue());
+                            if(fieldFormat.getFieldType().equals("String")) {
+                                dataMap.put(fieldFormat.getSourceFieldName(), currentCell.getStringCellValue());
+                            } else if(fieldFormat.getFieldType().equals("Integer")){
+                                dataMap.put(fieldFormat.getSourceFieldName(), currentCell.getNumericCellValue());
+                            } else if(fieldFormat.getFieldType().equals("Date")){
+                                if(currentCell.getDateCellValue() != null) {
+                                    SimpleDateFormat originalFormat = new SimpleDateFormat("MM/dd/yyyy");
+                                    dataMap.put(fieldFormat.getSourceFieldName(),
+                                                originalFormat.format(currentCell.getDateCellValue()));
+                                }else {
+                                    dataMap.put(fieldFormat.getSourceFieldName(),currentCell.getDateCellValue());
+                                }
                             }
                         }
-                        ehrData.setSheetName(sheetNames.get(sheetIndex));
+                        ehrData.setSheetName(sheetName);
                         ehrData.setData(dataMap);
                         sourceDataList.add(ehrData);
                     }
@@ -210,7 +172,7 @@ public class ExcelHelper {
                                                                                             .equals(headerName))
                                                                               .collect(Collectors.toList());
                             if (index == 0) {
-                                targetData.setTargetId((int) currentCell.getNumericCellValue());
+                                targetData.setPatientId((int) currentCell.getNumericCellValue());
                             }
                             if (CellType.STRING == cellType) {
                                 dataMap.put(targetColumnNames.get(0).getTargetColumnName(),
@@ -227,8 +189,8 @@ public class ExcelHelper {
                                                                          .filter(c -> c.getSourceSheetName()
                                                                                        .equals(sheetName))
                                                                          .collect(Collectors.toList());
-                        targetData.setSheetName(targetSheetNames.get(0).getTargetSheetName());
-                        targetData.setData(dataMap);
+                        targetData.setTargetSheetName(targetSheetNames.get(0).getTargetSheetName());
+                        targetData.setTargetData(dataMap);
                         targetDataList.add(targetData);
                     }
                 }
@@ -240,12 +202,12 @@ public class ExcelHelper {
         }
     }
 
-    public static String writeToExcelFile(List<TargetData> targetData){
+    public static String writeToExcelFile(List<TargetData> targetData) {
         XSSFWorkbook workbook = new XSSFWorkbook();
         XSSFSheet sheet;
         for(int sheetIndex = 0; sheetIndex < targetData.size(); sheetIndex++){
-            String sheetName = targetData.get(sheetIndex).getSheetName();
-            Map<String,Object> data = targetData.get(sheetIndex).getData();
+            String sheetName = targetData.get(sheetIndex).getTargetSheetName();
+            Map<String,Object> data = targetData.get(sheetIndex).getTargetData();
             Set<String> keySet = data.keySet();
             if(workbook.getSheet(sheetName) == null) {
                 sheet = workbook.createSheet(sheetName);
@@ -265,8 +227,11 @@ public class ExcelHelper {
                 Cell cell = row.createCell(cellNumber++);
                 if(obj instanceof String)
                     cell.setCellValue((String)obj);
-                else if(obj instanceof Number)
+                else if(obj instanceof Number) {
                     cell.setCellValue((Double) obj);
+                } else if(obj instanceof Date) {
+                    cell.setCellValue((Date) obj);
+                }
             }
         }
         try {
@@ -338,4 +303,111 @@ public class ExcelHelper {
             throw new RuntimeException("fail to parse Excel file: " + e.getMessage());
         }
     }
+
+    public static List<TargetData> transformSourceToTargetData(List<EHRData> ehrDataList, List<EHRMapping> mappingTable) {
+
+        List<TargetData> targetDataList = new ArrayList<>();
+
+        Map<String, List<EHRMapping>> mappingDataPerSheetName = mappingTable.stream()
+                                                              .collect(Collectors.groupingBy(EHRMapping::getTargetSheetName));
+        Set<String> targetSheetSet = mappingDataPerSheetName.keySet();
+        for(String targetSheet : targetSheetSet){
+            TargetData targetData = new TargetData();
+            Map<String, Object> dataMap = new HashMap<>();
+            List<EHRMapping> mappingDataList = mappingDataPerSheetName.get(targetSheet);
+            for(EHRMapping mappingData : mappingDataList){
+                EHRData sourceEhrData = ehrDataList.stream().filter(c -> c.getSheetName().equals(mappingData.getSourceSheetName())).findFirst().orElse(null);
+                targetData.setTargetFileName(mappingData.getTargetFileName());
+                targetData.setTargetSheetName(mappingData.getTargetSheetName());
+                if(sourceEhrData != null) {
+                    targetData.setPatientId(sourceEhrData.getSourceId());
+                    switch (mappingData.getTargetFieldType()){
+                        case "SelectMap":
+                            if(mappingData.getTargetFieldFormat().split(":")[1].equals("Branch")){
+                                String sourceBranch = sourceEhrData.getData().get(mappingData.getSourceFieldName()).toString();
+                                String hchbValue = branchMap.get(sourceBranch);
+                                dataMap.put(mappingData.getTargetFieldName(),
+                                            hchbValue);
+                            }
+                            break;
+                        case "Default":
+                            dataMap.put(mappingData.getTargetFieldName(),
+                                                   mappingData.getTargetFieldFormat());
+                            break;
+                        case "Split":
+                            String regex = mappingData.getTargetFieldFormat().split(":")[0];
+                            Integer index = Integer.parseInt(mappingData.getTargetFieldFormat().split(":")[1]);
+                            dataMap.put(mappingData.getTargetFieldName(),
+                                        sourceEhrData.getData().get(mappingData.getSourceFieldName()).toString()
+                                                     .split(regex)[index]);
+                            break;
+                        default:
+                            dataMap.put(mappingData.getTargetFieldName(),
+                                        sourceEhrData.getData().get(mappingData.getSourceFieldName()));
+                            break;
+                    }
+                }else {
+                    dataMap.put(mappingData.getTargetFieldName(),null);
+                }
+            }
+            targetData.setTargetData(dataMap);
+            targetDataList.add(targetData);
+        }
+        return targetDataList;
+    }
+
+    public static List<EHRMapping> excelToEHRMapping(String sourceEHR, String targetEHR, InputStream inputStream) {
+        try {
+            Workbook workbook = new XSSFWorkbook(inputStream);
+            List<String> sheetNames = getSheetNames(workbook);
+            Sheet sheet = workbook.getSheet(sheetNames.get(0));
+            Iterator<Row> rows = sheet.iterator();
+            List<EHRMapping> mappingDataList = new ArrayList<>();
+            List<String> headerNames = new ArrayList<>();
+            int rowNumber = 0;
+            while (rows.hasNext()) {
+                Row currentRow = rows.next();
+                Map<String, Object> dataMap = new HashMap<>();
+                EHRMapping ehrMapping = new EHRMapping();
+                ehrMapping.setSourceEHR(sourceEHR);
+                ehrMapping.setTargetEHR(targetEHR);
+                Iterator<Cell> cellsInRow = currentRow.iterator();
+                int cellIdx = 0;
+                if (rowNumber == 0) {
+                    while (cellsInRow.hasNext()) {
+                        Cell currentCell = cellsInRow.next();
+                        headerNames.add(currentCell.getStringCellValue());
+                        cellIdx++;
+                    }
+                    rowNumber++;
+                    continue;
+                }
+                Map<String,String> inputMap = new HashMap<>();
+                for(int index = 0; index < headerNames.size(); index++){
+                    Cell currentCell = cellsInRow.next();
+                    CellType cellType =currentCell.getCellType();
+                    inputMap.put(headerNames.get(index),currentCell.getStringCellValue());
+                    cellIdx++;
+                }
+                ehrMapping.setSourceFileName(inputMap.get("SRC File Name"));
+                ehrMapping.setSourceSheetName(inputMap.get("SRC Sheet Name"));
+                ehrMapping.setSourceFieldName(inputMap.get("SRC Field Name"));
+                ehrMapping.setMapping(inputMap.get("Mapping"));
+                ehrMapping.setSourceFieldType(inputMap.get("SRC Field Type"));
+                ehrMapping.setSourceFieldFormat(inputMap.get("SRC Field Format"));
+                ehrMapping.setTargetFileName(inputMap.get("Target File Name"));
+                ehrMapping.setTargetSheetName(inputMap.get("Target Sheet Name"));
+                ehrMapping.setTargetFieldName(inputMap.get("Target Field Name"));
+                ehrMapping.setTargetFieldMandatory(inputMap.get("Target Field Mandatory"));
+                ehrMapping.setTargetFieldType(inputMap.get("Target Field Type"));
+                ehrMapping.setTargetFieldFormat(inputMap.get("Target Field Format"));
+                mappingDataList.add(ehrMapping);
+            }
+            workbook.close();
+            return mappingDataList;
+        } catch (IOException e) {
+            throw new RuntimeException("fail to parse Excel file: " + e.getMessage());
+        }
+    }
+
 }
